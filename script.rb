@@ -14,6 +14,11 @@ BACKUP_DIR     = ENV.fetch('BACKUP_DIR', './backups')
 def script(event:, context:)
   log :debug, 'starting'
 
+  ##
+  # flushes the backup dir
+  #
+  flush(BACKUP_DIR)
+
   start = Time.now.in_time_zone(TIMEZONE).beginning_of_day
   script_start = Time.now.in_time_zone(TIMEZONE)
 
@@ -45,6 +50,16 @@ def script(event:, context:)
 
     raise StandardError, "mysqldump failed: #{stderr.strip}"
   end
+
+  ##
+  # gzip the file
+  #
+  gzip_file(backup_file, "#{backup_file}.gz")
+
+  ##
+  # Upload to S3
+  #
+  # upload_to_s3(backup_file)
 
   log :info, "finished, #{Time.now.in_time_zone(TIMEZONE) - script_start}"
 rescue StandardError => e
