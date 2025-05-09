@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require 'open3'
 require_relative './settings'
 
 # Load MySQL credentials from environment
