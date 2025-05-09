@@ -10,24 +10,24 @@ MYSQL_PORT     = ENV.fetch('MYSQL_PORT', '3306')
 MYSQL_DATABASE = ENV.fetch('MYSQL_DATABASE')
 BACKUP_DIR     = ENV.fetch('BACKUP_DIR', './backups')
 
+##
 # Lambda function runs script
+#
 def script(event:, context:)
   log :debug, 'starting'
-
-  ##
-  # flushes the backup dir
-  #
-  flush(BACKUP_DIR)
 
   start = Time.now.in_time_zone(TIMEZONE).beginning_of_day
   script_start = Time.now.in_time_zone(TIMEZONE)
 
   timestamp    = Time.now.utc.strftime('%Y%m%d-%H%M%S')
-  backup_file  = File.join(BACKUP_DIR, "#{MYSQL_DATABASE}_backup_#{timestamp}.sql")
+  filename     = "#{MYSQL_DATABASE}_backup_#{timestamp}.sql"
+  backup_file  = File.join(BACKUP_DIR, filename)
 
   FileUtils.mkdir_p(BACKUP_DIR)
 
+  ##
   # Construct mysqldump command
+  #
   cmd = [
     'mysqldump',
     '--protocol=TCP',
@@ -42,7 +42,7 @@ def script(event:, context:)
   stdout, stderr, status = Open3.capture3(cmd)
 
   if status.success?
-    log :debug, "Backup completed: #{backup_file}"
+    log :debug, "Backup completed: #{filename}"
   else
     log :fatal, "Backup failed with exit code #{status.exitstatus}"
     log :fatal, "STDOUT: #{stdout.strip}" unless stdout.strip.empty?
@@ -59,7 +59,12 @@ def script(event:, context:)
   ##
   # Upload to S3
   #
-  # upload_to_s3(backup_file)
+  upload_to_s3("#{backup_file}.gz")
+
+  ##
+  # flushes the backup dir
+  #
+  flush(BACKUP_DIR)
 
   log :info, "finished, #{Time.now.in_time_zone(TIMEZONE) - script_start}"
 rescue StandardError => e
