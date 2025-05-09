@@ -1,0 +1,6 @@
+/function.zip
+*.env*
+vendor/
+backups/
+*.DS_Store
+local.rb
